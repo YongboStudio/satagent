@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/cihub/seelog"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/smartping/smartping/src/g"
-	"github.com/smartping/smartping/src/nettools"
+	"github.com/YongboStudio/satagent/src/common"
+	"github.com/YongboStudio/satagent/src/nettools"
 	"math"
 	"net"
 	"strconv"
@@ -16,18 +16,18 @@ import (
 
 var (
 	MapLock   = new(sync.Mutex)
-	MapStatus map[string][]g.MapVal
+	MapStatus map[string][]common.MapVal
 )
 
 func Mapping() {
 	var wg sync.WaitGroup
-	MapStatus = map[string][]g.MapVal{}
-	seelog.Debug("[func:Mapping]", g.Cfg.Chinamap)
-	for tel, provDetail := range g.Cfg.Chinamap {
+	MapStatus = map[string][]common.MapVal{}
+	seelog.Debug("[func:Mapping]", common.Cfg.Chinamap)
+	for tel, provDetail := range common.Cfg.Chinamap {
 		for prov, _ := range provDetail {
-			seelog.Debug("[func:Mapping]", g.Cfg.Chinamap[tel][prov])
-			if len(g.Cfg.Chinamap[tel][prov]) > 0 {
-				go MappingTask(tel, prov, g.Cfg.Chinamap[tel][prov], &wg)
+			seelog.Debug("[func:Mapping]", common.Cfg.Chinamap[tel][prov])
+			if len(common.Cfg.Chinamap[tel][prov]) > 0 {
+				go MappingTask(tel, prov, common.Cfg.Chinamap[tel][prov], &wg)
 				wg.Add(1)
 			}
 		}
@@ -39,13 +39,13 @@ func Mapping() {
 //ping main function
 func MappingTask(tel string, prov string, ips []string, wg *sync.WaitGroup) {
 	seelog.Info("Start MappingTask " + tel + " " + prov + "..")
-	statMap := []g.PingSt{}
+	statMap := []common.PingSt{}
 	for _, ip := range ips {
 		seelog.Debug("[func:StartChinaMapPing]", ip)
 		ipaddr, err := net.ResolveIPAddr("ip", ip)
 		if err == nil {
 			for i := 0; i < 3; i++ {
-				stat := g.PingSt{}
+				stat := common.PingSt{}
 				stat.MinDelay = -1
 				stat.LossPk = 0
 				delay, err := nettools.RunPing(ipaddr, 3*time.Second, 64, i)
@@ -73,7 +73,7 @@ func MappingTask(tel string, prov string, ips []string, wg *sync.WaitGroup) {
 				statMap = append(statMap, stat)
 			}
 		} else {
-			stat := g.PingSt{}
+			stat := common.PingSt{}
 			stat.AvgDelay = 2000.00
 			stat.MinDelay = 2000.00
 			stat.MaxDelay = 2000.00
@@ -83,7 +83,7 @@ func MappingTask(tel string, prov string, ips []string, wg *sync.WaitGroup) {
 			statMap = append(statMap, stat)
 		}
 	}
-	fStatDetail := g.PingSt{}
+	fStatDetail := common.PingSt{}
 	fT := 0
 	effCnt := 0
 	for _, stat := range statMap {
@@ -101,7 +101,7 @@ func MappingTask(tel string, prov string, ips []string, wg *sync.WaitGroup) {
 		fStatDetail.LossPk = fStatDetail.SendPk - fStatDetail.RevcPk
 		effCnt = effCnt + 1
 	}
-	gMapVal := g.MapVal{}
+	gMapVal := common.MapVal{}
 	gMapVal.Name = tel
 	value, _ := strconv.ParseFloat(fmt.Sprintf("%.2f", fStatDetail.AvgDelay/float64(effCnt)), 64)
 	gMapVal.Value = value
@@ -120,14 +120,14 @@ func MapPingStorage() {
 		seelog.Error("[func:StartPing] Json Error ", err)
 	}
 	sql := "REPLACE INTO [mappinglog] (logtime, mapjson) values('" + time.Now().Format("2006-01-02 15:04") + "','" + string(jdata) + "')"
-	g.DLock.Lock()
-	g.Db.Exec(sql)
-	_, err = g.Db.Exec(sql)
+	common.DLock.Lock()
+	common.Db.Exec(sql)
+	_, err = common.Db.Exec(sql)
 	seelog.Debug(sql)
 	if err != nil {
 		seelog.Error("[func:StartPing] Sql Error ", err)
 	}
-	g.DLock.Unlock()
+	common.DLock.Unlock()
 	seelog.Debug("[func:MapPingStorage] ", sql)
 	seelog.Info("Finish MapPingStorage...")
 }

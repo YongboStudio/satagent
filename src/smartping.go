@@ -4,9 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"github.com/jakecoffman/cron"
-	"github.com/smartping/smartping/src/funcs"
-	"github.com/smartping/smartping/src/g"
-	"github.com/smartping/smartping/src/http"
+	"github.com/YongboStudio/satagent/src/funcs"
+	"github.com/YongboStudio/satagent/src/g"
+	"github.com/YongboStudio/satagent/src/http"
 	"os"
 	"runtime"
 	//"sync"
@@ -23,13 +23,13 @@ func main() {
 		fmt.Println(Version)
 		os.Exit(0)
 	}
-	g.ParseConfig(Version)
+	common.ParseConfig(Version)
 	go funcs.ClearArchive()
 	c := cron.New()
 	c.AddFunc("*/60 * * * * *", func() {
 		go funcs.Ping()
 		go funcs.Mapping()
-		if g.Cfg.Mode["Type"] == "cloud" {
+		if common.Cfg.Mode["Type"] == "cloud" {
 			go funcs.StartCloudMonitor()
 		}
 	}, "ping")

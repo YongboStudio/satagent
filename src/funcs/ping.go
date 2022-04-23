@@ -3,8 +3,8 @@ package funcs
 import (
 	"github.com/cihub/seelog"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/smartping/smartping/src/g"
-	"github.com/smartping/smartping/src/nettools"
+	"github.com/YongboStudio/satagent/src/common"
+	"github.com/YongboStudio/satagent/src/nettools"
 	"net"
 	"strconv"
 	"sync"
@@ -13,18 +13,18 @@ import (
 
 func Ping() {
 	var wg sync.WaitGroup
-	for _, target := range g.SelfCfg.Ping {
+	for _, target := range common.SelfCfg.Ping {
 		wg.Add(1)
-		go PingTask(g.Cfg.Network[target], &wg)
+		go PingTask(common.Cfg.Network[target], &wg)
 	}
 	wg.Wait()
 	go StartAlert()
 }
 
 //ping main function
-func PingTask(t g.NetworkMember, wg *sync.WaitGroup) {
+func PingTask(t common.NetworkMember, wg *sync.WaitGroup) {
 	seelog.Info("Start Ping " + t.Addr + "..")
-	stat := g.PingSt{}
+	stat := common.PingSt{}
 	stat.MinDelay = -1
 	lossPK := 0
 	ipaddr, err := net.ResolveIPAddr("ip", t.Addr)
@@ -72,16 +72,16 @@ func PingTask(t g.NetworkMember, wg *sync.WaitGroup) {
 }
 
 //storage ping data
-func PingStorage(pingres g.PingSt, Addr string) {
+func PingStorage(pingres common.PingSt, Addr string) {
 	logtime := time.Now().Format("2006-01-02 15:04")
 	seelog.Info("[func:StartPing] ", "(", logtime, ")Starting PingStorage ", Addr)
 	sql := "INSERT INTO [pinglog] (logtime, target, maxdelay, mindelay, avgdelay, sendpk, revcpk, losspk) values('" + logtime + "','" + Addr + "','" + strconv.FormatFloat(pingres.MaxDelay, 'f', 2, 64) + "','" + strconv.FormatFloat(pingres.MinDelay, 'f', 2, 64) + "','" + strconv.FormatFloat(pingres.AvgDelay, 'f', 2, 64) + "','" + strconv.Itoa(pingres.SendPk) + "','" + strconv.Itoa(pingres.RevcPk) + "','" + strconv.Itoa(pingres.LossPk) + "')"
 	seelog.Debug("[func:StartPing] ", sql)
-	g.DLock.Lock()
-	_, err := g.Db.Exec(sql)
+	common.DLock.Lock()
+	_, err := common.Db.Exec(sql)
 	if err != nil {
 		seelog.Error("[func:StartPing] Sql Error ", err)
 	}
-	g.DLock.Unlock()
+	common.DLock.Unlock()
 	seelog.Info("[func:StartPing] ", "(", logtime, ") Finish PingStorage  ", Addr)
 }

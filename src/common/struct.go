@@ -1,4 +1,4 @@
-package g
+package common
 
 type Config struct {
 	Ver        string

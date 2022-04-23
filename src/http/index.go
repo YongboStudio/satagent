@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/smartping/smartping/src/g"
+	"github.com/YongboStudio/satagent/src/common"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -16,12 +16,12 @@ func configIndexRoutes() {
 			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/") {
-			if !g.IsExist(filepath.Join(g.Root, "/html", r.URL.Path, "index.html")) {
+			if !common.IsExist(filepath.Join(common.Root, "/html", r.URL.Path, "index.html")) {
 				http.NotFound(w, r)
 				return
 			}
 		}
-		http.FileServer(http.Dir(filepath.Join(g.Root, "/html"))).ServeHTTP(w, r)
+		http.FileServer(http.Dir(filepath.Join(common.Root, "/html"))).ServeHTTP(w, r)
 	})
 
 }

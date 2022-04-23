@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cihub/seelog"
-	"github.com/smartping/smartping/src/g"
+	"github.com/YongboStudio/satagent/src/common"
 	"github.com/wcharczuk/go-chart"
 	"github.com/wcharczuk/go-chart/drawing"
 	"log"
@@ -34,12 +34,12 @@ func RenderJson(w http.ResponseWriter, v interface{}) {
 }
 
 func AuthUserIp(RemoteAddr string) bool {
-	if len(g.AuthUserIpMap) == 0 {
+	if len(common.AuthUserIpMap) == 0 {
 		return true
 	}
 	ips := strings.Split(RemoteAddr, ":")
 	if len(ips) == 2 {
-		if _, ok := g.AuthUserIpMap[ips[0]]; ok {
+		if _, ok := common.AuthUserIpMap[ips[0]]; ok {
 			return true
 		}
 	}
@@ -48,16 +48,16 @@ func AuthUserIp(RemoteAddr string) bool {
 
 func AuthAgentIp(RemoteAddr string, drt bool) bool {
 	if drt {
-		if len(g.AuthUserIpMap) == 0 {
+		if len(common.AuthUserIpMap) == 0 {
 			return true
 		}
 	}
-	if len(g.AuthAgentIpMap) == 0 {
+	if len(common.AuthAgentIpMap) == 0 {
 		return true
 	}
 	ips := strings.Split(RemoteAddr, ":")
 	if len(ips) == 2 {
-		if _, ok := g.AuthAgentIpMap[ips[0]]; ok {
+		if _, ok := common.AuthAgentIpMap[ips[0]]; ok {
 			return true
 		}
 	}
@@ -78,8 +78,8 @@ func GraphText(x int, y int, txt string) chart.Renderer {
 func StartHttp() {
 	configApiRoutes()
 	configIndexRoutes()
-	seelog.Info("[func:StartHttp] starting to listen on ", g.Cfg.Port)
-	s := fmt.Sprintf(":%d", g.Cfg.Port)
+	seelog.Info("[func:StartHttp] starting to listen on ", common.Cfg.Port)
+	s := fmt.Sprintf(":%d", common.Cfg.Port)
 	err := http.ListenAndServe(s, nil)
 	if err != nil {
 		log.Fatalln("[StartHttp]", err)

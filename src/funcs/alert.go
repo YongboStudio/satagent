@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"github.com/cihub/seelog"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/smartping/smartping/src/g"
-	"github.com/smartping/smartping/src/nettools"
+	"github.com/YongboStudio/satagent/src/common"
+	"github.com/YongboStudio/satagent/src/nettools"
 	"net/smtp"
 	"strconv"
 	"strings"
@@ -16,19 +16,19 @@ import (
 
 func StartAlert() {
 	seelog.Info("[func:StartAlert] ", "starting run AlertCheck ")
-	for _, v := range g.SelfCfg.Topology {
-		if v["Addr"] != g.SelfCfg.Addr {
+	for _, v := range common.SelfCfg.Topology {
+		if v["Addr"] != common.SelfCfg.Addr {
 			sFlag := CheckAlertStatus(v)
 			if sFlag {
-				g.AlertStatus[v["Addr"]] = true
+				common.AlertStatus[v["Addr"]] = true
 			}
-			_, haskey := g.AlertStatus[v["Addr"]]
-			if (!haskey && !sFlag) || (!sFlag && g.AlertStatus[v["Addr"]]) {
+			_, haskey := common.AlertStatus[v["Addr"]]
+			if (!haskey && !sFlag) || (!sFlag && common.AlertStatus[v["Addr"]]) {
 				seelog.Debug("[func:StartAlert] ", v["Addr"]+" Alert!")
-				g.AlertStatus[v["Addr"]] = false
-				l := g.AlertLog{}
-				l.Fromname = g.SelfCfg.Name
-				l.Fromip = g.SelfCfg.Addr
+				common.AlertStatus[v["Addr"]] = false
+				l := common.AlertLog{}
+				l.Fromname = common.SelfCfg.Name
+				l.Fromip = common.SelfCfg.Addr
 				l.Logtime = time.Unix(time.Now().Unix(), 0).Format("2006-01-02 15:04")
 				l.Targetname = v["Name"]
 				l.Targetip = v["Addr"]
@@ -47,7 +47,7 @@ func StartAlert() {
 				}
 				l.Tracert = mtrString
 				go AlertStorage(l)
-				if g.Cfg.Alert["SendEmailAccount"] != "" && g.Cfg.Alert["SendEmailPassword"] != "" && g.Cfg.Alert["EmailHost"] != "" && g.Cfg.Alert["RevcEmailList"] != "" {
+				if common.Cfg.Alert["SendEmailAccount"] != "" && common.Cfg.Alert["SendEmailPassword"] != "" && common.Cfg.Alert["EmailHost"] != "" && common.Cfg.Alert["RevcEmailList"] != "" {
 					go AlertSendMail(l)
 				}
 			}
@@ -64,7 +64,7 @@ func CheckAlertStatus(v map[string]string) bool {
 	Thdchecksec, _ := strconv.Atoi(v["Thdchecksec"])
 	timeStartStr := time.Unix((time.Now().Unix() - int64(Thdchecksec)), 0).Format("2006-01-02 15:04")
 	querysql := "SELECT count(1) cnt FROM  `pinglog` where logtime > '" + timeStartStr + "' and target = '" + v["Addr"] + "' and (cast(avgdelay as double) > " + v["Thdavgdelay"] + " or cast(losspk as double) > " + v["Thdloss"] + ") "
-	rows, err := g.Db.Query(querysql)
+	rows, err := common.Db.Query(querysql)
 	defer rows.Close()
 	seelog.Debug("[func:StartAlert] ", querysql)
 	if err != nil {
@@ -88,20 +88,20 @@ func CheckAlertStatus(v map[string]string) bool {
 	return false
 }
 
-func AlertStorage(t g.AlertLog) {
+func AlertStorage(t common.AlertLog) {
 	seelog.Info("[func:AlertStorage] ", "(", t.Logtime, ")Starting AlertStorage ", t.Targetname)
 	sql := "INSERT INTO [alertlog] (logtime, targetip, targetname, tracert) values('" + t.Logtime + "','" + t.Targetip + "','" + t.Targetname + "','" + t.Tracert + "')"
-	g.DLock.Lock()
-	//g.Db.Exec(sql)
-	_, err := g.Db.Exec(sql)
+	common.DLock.Lock()
+	//common.Db.Exec(sql)
+	_, err := common.Db.Exec(sql)
 	if err != nil {
 		seelog.Error("[func:StartPing] Sql Error ", err)
 	}
-	g.DLock.Unlock()
+	common.DLock.Unlock()
 	seelog.Info("[func:AlertStorage] ", "(", t.Logtime, ") AlertStorage on ", t.Targetname, " finish!")
 }
 
-func AlertSendMail(t g.AlertLog) {
+func AlertSendMail(t common.AlertLog) {
 	hops := []nettools.Mtr{}
 	err := json.Unmarshal([]byte(t.Tracert), &hops)
 	if err != nil {
@@ -117,10 +117,10 @@ func AlertSendMail(t g.AlertLog) {
 	fmt.Fprintf(mtrstr, "</table>")
 	title := "【" + t.Fromname + "->" + t.Targetname + "】网络异常报警（" + t.Logtime + "）- SmartPing"
 	content := "报警时间：" + t.Logtime + " <br> 来路：" + t.Fromname + "(" + t.Fromip + ") <br>  目的：" + t.Targetname + "(" + t.Targetip + ") <br> "
-	SendEmailAccount := g.Cfg.Alert["SendEmailAccount"]
-	SendEmailPassword := g.Cfg.Alert["SendEmailPassword"]
-	EmailHost := g.Cfg.Alert["EmailHost"]
-	RevcEmailList := g.Cfg.Alert["RevcEmailList"]
+	SendEmailAccount := common.Cfg.Alert["SendEmailAccount"]
+	SendEmailPassword := common.Cfg.Alert["SendEmailPassword"]
+	EmailHost := common.Cfg.Alert["EmailHost"]
+	RevcEmailList := common.Cfg.Alert["RevcEmailList"]
 	err = SendMail(SendEmailAccount, SendEmailPassword, EmailHost, RevcEmailList, title, content+mtrstr.String())
 	if err != nil {
 		seelog.Error("[func:AlertSendMail] SendMail Error ", err)

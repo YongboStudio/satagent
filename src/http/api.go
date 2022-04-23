@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cihub/seelog"
-	"github.com/smartping/smartping/src/funcs"
-	"github.com/smartping/smartping/src/g"
-	"github.com/smartping/smartping/src/nettools"
+	"github.com/YongboStudio/satagent/src/funcs"
+	"github.com/YongboStudio/satagent/src/common"
+	"github.com/YongboStudio/satagent/src/nettools"
 	"github.com/wcharczuk/go-chart"
 	"github.com/wcharczuk/go-chart/drawing"
 	"io/ioutil"
@@ -29,8 +29,8 @@ func configApiRoutes() {
 			return
 		}
 		r.ParseForm()
-		nconf := g.Config{}
-		cfgJson, _ := json.Marshal(g.Cfg)
+		nconf := common.Config{}
+		cfgJson, _ := json.Marshal(common.Cfg)
 		json.Unmarshal(cfgJson, &nconf)
 		nconf.Password = ""
 		if !AuthAgentIp(r.RemoteAddr, false) {
@@ -38,7 +38,7 @@ func configApiRoutes() {
 				nconf.Alert["SendEmailPassword"] = "samepasswordasbefore"
 			}
 		}
-		//fmt.Print(g.Cfg.Alert["SendEmailPassword"])
+		//fmt.Print(common.Cfg.Alert["SendEmailPassword"])
 		onconf, _ := json.Marshal(nconf)
 		var out bytes.Buffer
 		json.Indent(&out, onconf, "", "\t")
@@ -107,13 +107,13 @@ func configApiRoutes() {
 			timeStart = timeStart + 60
 		}
 		querySql := "SELECT logtime,maxdelay,mindelay,avgdelay,losspk FROM `pinglog` where target='" + tableip + "' and logtime between '" + timeStartStr + "' and '" + timeEndStr + "' "
-		rows, err := g.Db.Query(querySql)
+		rows, err := common.Db.Query(querySql)
 		seelog.Debug("[func:/api/ping.json] Query ", querySql)
 		if err != nil {
 			seelog.Error("[func:/api/ping.json] Query ", err)
 		} else {
 			for rows.Next() {
-				l := new(g.PingLog)
+				l := new(common.PingLog)
 				err := rows.Scan(&l.Logtime, &l.Maxdelay, &l.Mindelay, &l.Avgdelay, &l.Losspk)
 				if err != nil {
 					seelog.Error("[/api/ping.json] Rows", err)
@@ -150,7 +150,7 @@ func configApiRoutes() {
 			return
 		}
 		preout := make(map[string]string)
-		for _, v := range g.SelfCfg.Topology {
+		for _, v := range common.SelfCfg.Topology {
 			if funcs.CheckAlertStatus(v) {
 				preout[v["Addr"]] = "true"
 			} else {
@@ -179,9 +179,9 @@ func configApiRoutes() {
 			dtb = strings.Replace(r.Form["date"][0], "alertlog-", "", -1)
 		}
 		listpreout := []string{}
-		datapreout := []g.AlertLog{}
+		datapreout := []common.AlertLog{}
 		querySql := "select date(logtime) as ldate from alertlog group by date(logtime) order by logtime desc"
-		rows, err := g.Db.Query(querySql)
+		rows, err := common.Db.Query(querySql)
 		seelog.Debug("[func:/api/alert.json] Query ", querySql)
 		if err != nil {
 			seelog.Error("[func:/api/alert.json] Query ", err)
@@ -198,16 +198,16 @@ func configApiRoutes() {
 			rows.Close()
 		}
 		querySql = "select logtime,targetname,targetip,tracert from alertlog where logtime between '" + dtb + " 00:00:00' and '" + dtb + " 23:59:59'"
-		rows, err = g.Db.Query(querySql)
+		rows, err = common.Db.Query(querySql)
 		seelog.Debug("[func:/api/alert.json] Query ", querySql)
 		if err != nil {
 			seelog.Error("[func:/api/alert.json] Query ", err)
 		} else {
 			for rows.Next() {
-				l := new(g.AlertLog)
+				l := new(common.AlertLog)
 				err := rows.Scan(&l.Logtime, &l.Targetname, &l.Targetip, &l.Tracert)
-				l.Fromname = g.Cfg.Name
-				l.Fromip = g.Cfg.Addr
+				l.Fromname = common.Cfg.Name
+				l.Fromip = common.Cfg.Addr
 				if err != nil {
 					seelog.Error("[/api/alert.json] Rows", err)
 					continue
@@ -237,17 +237,17 @@ func configApiRoutes() {
 		type Mapjson struct {
 			Mapjson string
 		}
-		chinaMp := g.ChinaMp{}
-		chinaMp.Text = g.Cfg.Name
+		chinaMp := common.ChinaMp{}
+		chinaMp.Text = common.Cfg.Name
 		chinaMp.Subtext = dataKey
-		chinaMp.Avgdelay = map[string][]g.MapVal{}
-		chinaMp.Avgdelay["ctcc"] = []g.MapVal{}
-		chinaMp.Avgdelay["cucc"] = []g.MapVal{}
-		chinaMp.Avgdelay["cmcc"] = []g.MapVal{}
-		g.DLock.Lock()
+		chinaMp.Avgdelay = map[string][]common.MapVal{}
+		chinaMp.Avgdelay["ctcc"] = []common.MapVal{}
+		chinaMp.Avgdelay["cucc"] = []common.MapVal{}
+		chinaMp.Avgdelay["cmcc"] = []common.MapVal{}
+		common.DLock.Lock()
 		querySql := "select mapjson from mappinglog where logtime = '" + dataKey + "'"
-		rows, err := g.Db.Query(querySql)
-		g.DLock.Unlock()
+		rows, err := common.Db.Query(querySql)
+		common.DLock.Unlock()
 		seelog.Debug("[func:/api/mapping.json] Query ", querySql)
 		if err != nil {
 			seelog.Error("[func:/api/mapping.json] Query ", err)
@@ -274,7 +274,7 @@ func configApiRoutes() {
 			http.Error(w, o, 401)
 			return
 		}
-		preout := g.ToolsRes{}
+		preout := common.ToolsRes{}
 		preout.Status = "false"
 		r.ParseForm()
 		if len(r.Form["t"]) == 0 {
@@ -283,16 +283,16 @@ func configApiRoutes() {
 			return
 		}
 		nowtime := int(time.Now().Unix())
-		if _, ok := g.ToolLimit[r.RemoteAddr]; ok {
-			if (nowtime - g.ToolLimit[r.RemoteAddr]) <= g.Cfg.Toollimit {
+		if _, ok := common.ToolLimit[r.RemoteAddr]; ok {
+			if (nowtime - common.ToolLimit[r.RemoteAddr]) <= common.Cfg.Toollimit {
 				preout.Error = "Time Limit Exceeded!"
 				RenderJson(w, preout)
 				return
 			}
 		}
-		g.ToolLimit[r.RemoteAddr] = nowtime
+		common.ToolLimit[r.RemoteAddr] = nowtime
 		target := strings.Replace(strings.Replace(r.Form["t"][0], "https://", "", -1), "http://", "", -1)
-		preout.Ping = g.PingSt{}
+		preout.Ping = common.PingSt{}
 		preout.Ping.MinDelay = -1
 		lossPK := 0
 		ipaddr, err := net.ResolveIPAddr("ip", target)
@@ -359,7 +359,7 @@ func configApiRoutes() {
 		preout := make(map[string]string)
 		r.ParseForm()
 		preout["status"] = "false"
-		if len(r.Form["password"]) == 0 || r.Form["password"][0] != g.Cfg.Password {
+		if len(r.Form["password"]) == 0 || r.Form["password"][0] != common.Cfg.Password {
 			preout["info"] = "密码错误!"
 			RenderJson(w, preout)
 			return
@@ -369,7 +369,7 @@ func configApiRoutes() {
 			RenderJson(w, preout)
 			return
 		}
-		nconfig := g.Config{}
+		nconfig := common.Config{}
 		err := json.Unmarshal([]byte(r.Form["config"][0]), &nconfig)
 		if err != nil {
 			preout["info"] = "配置文件解析错误!" + err.Error()
@@ -493,15 +493,15 @@ func configApiRoutes() {
 				}
 			}
 		}
-		nconfig.Ver = g.Cfg.Ver
-		nconfig.Port = g.Cfg.Port
-		nconfig.Password = g.Cfg.Password
+		nconfig.Ver = common.Cfg.Ver
+		nconfig.Port = common.Cfg.Port
+		nconfig.Password = common.Cfg.Password
 		if nconfig.Alert["SendEmailPassword"] == "samepasswordasbefore" {
-			nconfig.Alert["SendEmailPassword"] = g.Cfg.Alert["SendEmailPassword"]
+			nconfig.Alert["SendEmailPassword"] = common.Cfg.Alert["SendEmailPassword"]
 		}
-		g.Cfg = nconfig
-		g.SelfCfg = g.Cfg.Network[g.Cfg.Addr]
-		saveerr := g.SaveConfig()
+		common.Cfg = nconfig
+		common.SelfCfg = common.Cfg.Network[common.Cfg.Addr]
+		saveerr := common.SaveConfig()
 		if saveerr != nil {
 			preout["info"] = saveerr.Error()
 			RenderJson(w, preout)
@@ -566,8 +566,8 @@ func configApiRoutes() {
 			return
 		}
 		url := r.Form["g"][0]
-		config := g.PingStMini{}
-		timeout := time.Duration(time.Duration(g.Cfg.Base["Timeout"]) * time.Second)
+		config := common.PingStMini{}
+		timeout := time.Duration(time.Duration(common.Cfg.Base["Timeout"]) * time.Second)
 		client := http.Client{
 			Timeout: timeout,
 		}
@@ -705,7 +705,7 @@ func configApiRoutes() {
 			http.Error(w, o, 406)
 			return
 		}
-		to := strconv.Itoa(g.Cfg.Base["Timeout"])
+		to := strconv.Itoa(common.Cfg.Base["Timeout"])
 		if len(r.Form["t"]) > 0 {
 			to = r.Form["t"][0]
 		}
