@@ -2,7 +2,7 @@ package funcs
 
 import (
 	"github.com/cihub/seelog"
-	"github.com/YongboStudio/satagent/src/common"
+	"github.com/YongboStudio/satagent/satagent/src/common"
 	"strconv"
 )
 

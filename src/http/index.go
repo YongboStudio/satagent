@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/YongboStudio/satagent/src/common"
+	"github.com/YongboStudio/satagent/satagent/src/common"
 	"net/http"
 	"path/filepath"
 	"strings"
