@@ -3,8 +3,8 @@ package funcs
 import (
 	"github.com/cihub/seelog"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/YongboStudio/satagent/satagent/src/common"
-	"github.com/YongboStudio/satagent/satagent/src/nettools"
+	"github.com/yongbostudio/satagent/satagent/src/common"
+	"github.com/yongbostudio/satagent/satagent/src/nettools"
 	"net"
 	"strconv"
 	"sync"

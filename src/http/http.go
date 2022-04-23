@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/cihub/seelog"
-	"github.com/YongboStudio/satagent/satagent/src/common"
+	"github.com/yongbostudio/satagent/satagent/src/common"
 	"github.com/wcharczuk/go-chart"
 	"github.com/wcharczuk/go-chart/drawing"
 	"log"
